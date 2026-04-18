@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# ML model artifacts (large files - regenerate with trainer.py)
+models/*.pkl
+models/*.joblib
+models/archive/
+
+# Logs and database (runtime generated)
+logs/*.db
+logs/*.log
+
+# Dataset (large files - download separately from Kaggle)
+data/*.txt
+data/*.csv
+data/*.gz
+data/*.zip
+
+# Evaluation plots (regenerate with evaluator.py)
+models/*.png
+data/*.png
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment variables
+.env
+.env.local
+
+# Claude Code project files
+.claude/

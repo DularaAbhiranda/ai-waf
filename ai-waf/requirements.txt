@@ -1,0 +1,14 @@
+mitmproxy
+scikit-learn
+pandas
+numpy
+matplotlib
+seaborn
+flask
+streamlit
+plotly
+joblib
+shap
+requests
+jupyter
+pytest
