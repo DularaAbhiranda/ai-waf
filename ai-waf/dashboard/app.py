@@ -101,7 +101,14 @@ def load_events(limit=500):
             return pd.DataFrame(columns=["id","timestamp","method","url",
                                           "path","score","label","action","client_ip"])
         df = pd.DataFrame(rows)
-        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        # Timestamps stored as UTC in DB — convert to local system time for display
+        from datetime import datetime as _dt
+        _local_tz = _dt.now().astimezone().tzinfo
+        df["timestamp"] = (
+            pd.to_datetime(df["timestamp"], utc=True)
+            .dt.tz_convert(_local_tz)
+            .dt.tz_localize(None)
+        )
         return df
     except Exception:
         return pd.DataFrame()
@@ -130,7 +137,13 @@ def load_model_metrics():
 def load_retrain_log():
     try:
         df = pd.read_csv("models/retrain_log.csv")
-        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        from datetime import datetime as _dt
+        _local_tz = _dt.now().astimezone().tzinfo
+        df["timestamp"] = (
+            pd.to_datetime(df["timestamp"], utc=True)
+            .dt.tz_convert(_local_tz)
+            .dt.tz_localize(None)
+        )
         return df
     except Exception:
         return pd.DataFrame()
