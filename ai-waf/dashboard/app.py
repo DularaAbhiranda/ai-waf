@@ -297,7 +297,11 @@ def load_stats():
 def load_model_metrics():
     try:
         df = pd.read_csv("models/eval_results.csv")
-        return df.iloc[0].to_dict()
+        row = df.iloc[0].to_dict()
+        # Normalise column names so the rest of the app always sees the same keys
+        row.setdefault("CV_F1_Mean", row.pop("cv_f1_mean", 0))
+        row.setdefault("CV_F1_Std",  row.pop("cv_f1_std",  0))
+        return row
     except Exception:
         return {}
 
@@ -334,11 +338,21 @@ def load_drift_report():
 CHART_LAYOUT = dict(
     plot_bgcolor="#0f172a", paper_bgcolor="rgba(0,0,0,0)",
     font_color="#94a3b8", font_family="Inter",
-    legend=dict(bgcolor="rgba(0,0,0,0)", bordercolor="#334155", borderwidth=1),
     margin=dict(l=10, r=10, t=10, b=10),
     xaxis=dict(gridcolor="#1e293b", linecolor="#334155"),
     yaxis=dict(gridcolor="#1e293b", linecolor="#334155"),
 )
+# Shared legend style — apply separately to avoid conflicts with per-chart legend overrides
+_LEGEND = dict(bgcolor="rgba(0,0,0,0)", bordercolor="#334155", borderwidth=1)
+
+def chart_layout(**overrides):
+    """Return CHART_LAYOUT merged with per-chart overrides (handles legend safely)."""
+    layout = dict(CHART_LAYOUT)
+    layout.pop("xaxis", None) if "xaxis" not in overrides else None
+    layout.pop("yaxis", None) if "yaxis" not in overrides else None
+    layout["legend"] = {**_LEGEND, **overrides.pop("legend", {})}
+    layout.update(overrides)
+    return layout
 
 
 # ── sidebar ───────────────────────────────────────────────────────────────────
@@ -518,7 +532,7 @@ with tab_live:
                     line_shape="spline",
                 )
                 fig.update_traces(opacity=0.7)
-                fig.update_layout(**CHART_LAYOUT, height=240, showlegend=True)
+                fig.update_layout(**chart_layout(height=240, showlegend=True))
                 st.plotly_chart(fig, use_container_width=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
@@ -535,12 +549,10 @@ with tab_live:
                     hole=0.55,
                 )
                 fig_pie.update_traces(textinfo="percent", textfont_size=13)
-                fig_pie.update_layout(
-                    **{k:v for k,v in CHART_LAYOUT.items() if k not in ("xaxis","yaxis")},
+                fig_pie.update_layout(**chart_layout(
                     height=240, showlegend=True,
-                    legend=dict(orientation="h", yanchor="bottom", y=-0.2,
-                                bgcolor="rgba(0,0,0,0)")
-                )
+                    legend=dict(orientation="h", yanchor="bottom", y=-0.2),
+                ))
                 st.plotly_chart(fig_pie, use_container_width=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
@@ -563,10 +575,10 @@ with tab_live:
                                annotation_text="  Threshold 0.5",
                                annotation_font_color="#f8fafc",
                                annotation_font_size=11)
-            fig_hist.update_layout(
-                **CHART_LAYOUT, barmode="overlay", height=240,
+            fig_hist.update_layout(**chart_layout(
+                barmode="overlay", height=240,
                 xaxis_title="Score", yaxis_title="Count",
-            )
+            ))
             st.plotly_chart(fig_hist, use_container_width=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
@@ -582,7 +594,7 @@ with tab_live:
                     barmode="group", text_auto=True,
                 )
                 fig_method.update_traces(textfont_size=11, textposition="outside")
-                fig_method.update_layout(**CHART_LAYOUT, height=240, showlegend=True)
+                fig_method.update_layout(**chart_layout(height=240, showlegend=True))
                 st.plotly_chart(fig_method, use_container_width=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
@@ -617,7 +629,7 @@ with tab_live:
                 orientation="h", color_discrete_sequence=["#f87171"],
                 text_auto=True,
             )
-            fig_ip.update_layout(**CHART_LAYOUT, height=max(200, len(blocked_ips.head(10))*40))
+            fig_ip.update_layout(**chart_layout(height=max(200, len(blocked_ips.head(10))*40)))
             st.plotly_chart(fig_ip, use_container_width=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
@@ -673,7 +685,7 @@ with tab_attacks:
                     color="Attack Type", color_discrete_map=ATTACK_COLORS,
                     text_auto=True,
                 )
-                fig_types.update_layout(**CHART_LAYOUT, height=260, showlegend=False)
+                fig_types.update_layout(**chart_layout(height=260, showlegend=False))
                 st.plotly_chart(fig_types, use_container_width=True)
             else:
                 st.success("No attacks detected in current window.")
@@ -695,7 +707,7 @@ with tab_attacks:
                     marker_color="#4ade80", boxmean=True,
                     line_color="#4ade80",
                 ))
-            fig_box.update_layout(**CHART_LAYOUT, height=260, yaxis_title="Score")
+            fig_box.update_layout(**chart_layout(height=260, yaxis_title="Score"))
             st.plotly_chart(fig_box, use_container_width=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
@@ -840,11 +852,11 @@ with tab_retrain:
             mode="lines+markers", marker=dict(size=8, symbol="circle"),
             fill="tonexty", fillcolor="rgba(74,222,128,0.05)",
         ))
-        fig_f1.update_layout(
-            **CHART_LAYOUT, height=260,
+        fig_f1.update_layout(**chart_layout(
+            height=260,
             xaxis_title="Run Time", yaxis_title="F1 Score",
-            yaxis=dict(range=[0.5,1.0], gridcolor="#1e293b"),
-        )
+            yaxis=dict(range=[0.5, 1.0], gridcolor="#1e293b"),
+        ))
         st.plotly_chart(fig_f1, use_container_width=True)
 
         display = retrain_df[["timestamp","rows_used","old_f1","new_f1","old_auc","new_auc","swapped"]].copy()
